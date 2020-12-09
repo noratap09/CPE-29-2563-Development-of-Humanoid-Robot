@@ -18,7 +18,23 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define SERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
 #define SERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
 
+const int sw_pin = 5;
+const int dc_motor_pin_A1 = 6;
+const int dc_motor_pin_A2 = 7;
+const int dc_motor_pin_B1 = 8;
+const int dc_motor_pin_B2 = 9;
+
+char mode = 'M';
+
 void setup() {
+  pinMode(sw_pin,INPUT);
+  digitalWrite(sw_pin,HIGH); //Pull Up Switch
+
+  pinMode(dc_motor_pin_A1,OUTPUT);
+  pinMode(dc_motor_pin_A2,OUTPUT);
+  pinMode(dc_motor_pin_B1,OUTPUT);
+  pinMode(dc_motor_pin_B2,OUTPUT);
+  
   Serial.begin(9600);
   Serial.println("Robot Start!!");
   pwm.begin();
@@ -43,53 +59,104 @@ void setup() {
 
   //Turn L
   //turn_L();
-
-  //center_pos();
+  center_pos();
+  arm_walk();
+  //walk(10,0.03,-10.00,0.015,5.00,0.00,10,'f');
 }
 
 void loop() {
+    //Check Switch 
+    
+    int sw_value = digitalRead(sw_pin);
+    //Serial.println(mode);
+
+    if(mode=='M' && sw_value == 1)
+    { 
+      Blue_th.write("A"); 
+      delay(100);
+    }
+    else if(mode=='A' && sw_value == 0)
+    { 
+      Blue_th.write("M"); 
+      delay(100);
+    }
+
+    if(sw_value){ mode = 'A'; }
+    else{ mode = 'M'; }
+  
+    
+
+    //Check Bluetooth 
     if (Blue_th.available())
     {
-      char out_char = Blue_th.read();
+      String out_char = Blue_th.readStringUntil('\n');
       Blue_th_Flush(); //Clear Buffer
-      Serial.write(out_char);
-      if(out_char=='f') // Font
+      Serial.println(out_char);
+      if(out_char=="fd") // Font
       {
-        walk(10,0.03,10.00,0.015,5.00,0.00,10,'f');
+        walk(10,0.03,10.00,0.015,6.00,0.00,10,"fd");
       }
-      else if(out_char=='r') //Right
+      else if(out_char=="rd") //Right
       {
-        walk(10,0.00,30.00,0.014,5.00,0.00,5,'r');
+        //Trun_R(30.00,0.015,5.00,0.00,10,'r'); ยังไม่ OK
+        walk(10,0.00,30.00,0.014,5.00,0.00,5,"rd");
       }
-      else if(out_char=='l') //Left
+      else if(out_char=="ld") //Left
       {
-        walk(10,0.00,-30.00,0.014,5.00,0.00,5,'l');
+        //Trun_L(-30.00,0.015,5.00,0.00,10,'l'); ยังไม่ OK
+        walk(10,0.00,-30.00,0.014,5.00,0.00,5,"ld");
       }
-      else if(out_char=='b') //Back
+      else if(out_char=="bd") //Back
       {
-        walk(10,-0.03,0.00,0.014,5.00,0.00,10,'b');
+        walk(10,-0.03,0.00,0.014,6.00,0.00,10,"bd");
+      }
+      else if(out_char=="hello") //Pos Hello
+      {
+        pos_hello();
+      }
+      else if(out_char.indexOf("gun_l_pos")>=0) // gun_l_pos
+      {
+        String pos_x = out_char.substring(out_char.indexOf(":")+1,out_char.indexOf(","));
+        String pos_y = out_char.substring(out_char.indexOf(",")+1);
+        gun_l_set_pos(pos_x.toInt(),pos_y.toInt());
+      }
+      else if(out_char.indexOf("gun_r_pos")>=0) // gun_r_pos
+      {
+        String pos_x = out_char.substring(out_char.indexOf(":")+1,out_char.indexOf(","));
+        String pos_y = out_char.substring(out_char.indexOf(",")+1);
+        gun_r_set_pos(pos_x.toInt(),pos_y.toInt());
+      }
+      else if(out_char=="gun_l_shot") // gun_l_shot
+      {
+        dc_motor_L(1);
+        delay(500);
+        dc_motor_L(0);
+      }
+      else if(out_char=="gun_l_reload") // gun_l_reload
+      {
+        dc_motor_L(-1);
+        delay(500);
+        dc_motor_L(0);
+      }
+      else if(out_char=="gun_r_shot") // gun_r_shot
+      {
+        dc_motor_R(1);
+        delay(500);
+        dc_motor_R(0);
+      }
+      else if(out_char=="gun_r_reload") // gun_r_reload
+      {
+        dc_motor_R(-1);
+        delay(500);
+        dc_motor_R(0);
       }
       //Blue_th_Flush(); //Clear Buffer
     }
 
   if (Serial.available())
-    {
+  {
       Blue_th.write(Serial.read());
-    }
-    /*
-    if (Blue_th.available())
-    {
-      if(Blue_th.read()=="fd")
-      {
-        walk(5,0.03,0.00,0.015,5.00,0.00,10);
-      }
-      else if(Blue_th.read()=="rd")
-      {
-        walk(5,0.00,-30.00,0.014,5.00,0.00,5);
-      }
-      Serial.write(Blue_th.read());
-    }
-    */
+  }
 }
 
 void Blue_th_Flush(){
@@ -100,8 +167,8 @@ void Blue_th_Flush(){
 
 void center_pos()
 {
-  IK_L(0.00, 0.00, 0.1152, 0, 0, 0, 0, 95);
-  IK_R(0.00, 0.00, 0.1152, 0, 0, 0, 0, 120);
+  IK_L(0.00, 0.01, 0.1152, 0, 0, 0, 0, 95);
+  IK_R(0.00, 0.01, 0.1152, 0, 0, 0, 0, 120);
 }
 
 float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
@@ -126,196 +193,6 @@ float bezier(float t)
   return 0.1 * ( (pow((1 - t), 3) * P0) + (3 * pow((1 - t), 2) * t * P1) + (3 * (1 - t) * pow(t, 2) * P2) + (pow(t, 3) * P3) );
 }
 
-void walk(int num_walk,float walk_len,float walk_deg,float body_shift,float bia_body_shift,float bia_hit,int speed_per_f,char ck)
-{
-  if (num_walk > 0)
-  {
-    int n_sample = 20;
-    int t_delay = speed_per_f;
-    int t_delay_by_pos = 10;
-    float h_com = 0.1152;
-
-    //หมายถึงจังหวะที่ COM อยู่ตรงขาข้างนั้นๆ
-    float body_shift_L = body_shift+0.007;
-    float body_shift_R = body_shift+0.007; 
-    
-    float bia_body_shift_L = bia_body_shift+2.00;
-    float bia_body_shift_R = bia_body_shift+4.00;
-
-    float bia_hit_L = bia_hit+7.00;
-    float bia_hit_R = bia_hit+10.00;
-
-    float x_bia = -0.005;
-    float y_bia = -0.00;
-
-    //#I0 เริ่มต้น
-    IK_L(0.00-x_bia, 0.00, h_com , 0, 0, 0, 0, 95);
-    IK_R(0.00-x_bia, 0.00, h_com , 0, 0, 0, 0, 120);
-    //delay(5000);
-
-    //#I1 เถ COM ไปขา R
-    for (int i = 1; i <= n_sample; i++)
-    {
-      IK_L(0.00-x_bia, mapfloat(i, 1, n_sample, 0.00, -body_shift_R) - y_bia , h_com , 0, 0, 0, 0, 95);
-      IK_R(0.00-x_bia, mapfloat(i, 1, n_sample, 0.00, -body_shift_R) - y_bia , h_com , 0, 0, 0, 0, 120);
-      //Serial.println(mapfloat(i,1,n_sample,0.00,-0.02),10);
-      delay(t_delay*0.5);
-    }
-    delay(t_delay_by_pos);
-
-    //#P0 ยกขา L
-    for (int i = 1; i <= n_sample; i++)
-    {
-      //IK_L(0.00, -0.02 , mapfloat(i,1,n_sample,0.081,0.041) ,0,0,0,0);
-      IK_L(0.00-x_bia, -body_shift_R - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.00, 0.50))) , 0, 0, 0, 0, 95);
-      IK_R(0.00-x_bia, -body_shift_R - y_bia , h_com , mapfloat(i, 1, n_sample, 0.00, bia_body_shift_R), 0, 0, -bia_hit_R , 120);
-      //Serial.println((0.081 - bezier(mapfloat(i,1,n_sample,0.00,0.50))),10);
-      delay(t_delay*0.2);
-    }
-    delay(t_delay_by_pos);
-
-    for (int i_walk = 1; i_walk <= num_walk; i_walk++)
-    {
-      //#P1 วางขา L
-      for (int i = 1; i <= n_sample; i++)
-      {
-          IK_L( mapfloat(i, 1, n_sample, 0.00, walk_len)-x_bia , -body_shift_R - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.50, 0.90))) , 0, 0, 0, 0, 90 + constrain( mapfloat(i,1,n_sample,0.00,walk_deg),0.00,walk_deg) );
-          IK_R(0.00-x_bia, -body_shift_R - y_bia  , h_com , mapfloat(i, 1, n_sample,bia_body_shift_R,bia_body_shift_R*0.2), 0, 0, -bia_hit_R , 120);
-          delay(t_delay*0.2);
-      }
-      delay(t_delay_by_pos);
-
-      //#P2 เถ COM ไปขา L
-      for (int i = 1; i <= n_sample; i++)
-      {
-          IK_L( mapfloat(i, 1, n_sample, walk_len, 0.00) -x_bia , mapfloat(i, 1, n_sample, -body_shift_R, body_shift_L*0.5) - y_bia , h_com , 0, 0, 0, 0, 90  + constrain( mapfloat(i,1,n_sample,walk_deg,0.00) ,0.00,walk_deg) );
-          IK_R( mapfloat(i, 1, n_sample, 0.00, -walk_len) -x_bia , mapfloat(i, 1, n_sample, -body_shift_R, body_shift_L*0.5) - y_bia , h_com , mapfloat(i, 1, n_sample,bia_body_shift_R*0.2, 0.00), 0, 0, 0, 120 -  constrain( mapfloat(i,1,n_sample,0.00,walk_deg) ,0.00,walk_deg) );
-          delay(t_delay);
-      }
-      delay(t_delay_by_pos);
-
-      //#P3 ยกขา R
-      for (int i = 1; i <= n_sample; i++)
-      {
-          IK_L( 0.00 -x_bia , mapfloat(i, 1, n_sample,body_shift_L*0.5,body_shift_L) - y_bia , h_com , mapfloat(i, 1, n_sample, 0.00, -bia_body_shift_L) , 0, 0, bia_hit_L , 95);
-          IK_R( mapfloat(i, 1, n_sample, -walk_len, 0.00) -x_bia , mapfloat(i, 1, n_sample,body_shift_L*0.5,body_shift_L) - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.00, 0.50))) , 0, 0, 0, 0, 120 - constrain( mapfloat(i,1,n_sample,walk_deg,0.00) ,0.00,walk_deg));
-          delay(t_delay*0.5);
-      }
-    delay(t_delay_by_pos);
-
-    //check signal จาก App หากไม่มีหยุด
-    if (Blue_th.available())
-    {
-      char out_char = Blue_th.read();
-      Blue_th_Flush(); //Clear Buffer
-      Serial.write(out_char);
-      Serial.println("Stop_R");
-      if(out_char != ck)
-      {
-        //#F0 วางขา R
-        for (int i = 1; i <= n_sample; i++)
-        {
-          IK_L( 0.00 -x_bia , mapfloat(i, 1, n_sample, body_shift_L, 0.00) - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.50, 1.00))) , mapfloat(i, 1, n_sample, -bia_body_shift_L, 0.00) , 0, 0, bia_hit_L , 95);
-          IK_R(0.00 -x_bia, mapfloat(i, 1, n_sample, body_shift_L, 0.00) - y_bia, h_com , 0 , 0, 0, 0 , 120);
-          delay(t_delay*0.2);
-        }
-        delay(t_delay_by_pos);
-    
-        IK_L(0.00 -x_bia, 0.00 - y_bia , h_com , 0, 0, 0, 0, 95);
-        IK_R(0.00 -x_bia, 0.00 - y_bia , h_com , 0, 0, 0, 0, 120);
-    
-        break;
-      }
-    }
-    else
-    {
-      Serial.println("Stop_R without signal");
-    }    
-
-    //#P4 วางขา R
-    for (int i = 1; i <= n_sample; i++)
-    {
-        IK_L(0.00 -x_bia , body_shift_L , h_com , mapfloat(i, 1, n_sample, -bia_body_shift_L, -bia_body_shift_L*0.2) - y_bia , 0, 0, bia_hit_L , 95);
-        //IK_R( mapfloat(i,1,n_sample,0.00,walk_len) , 0.02 , mapfloat(i,1,n_sample,0.041,0.081) ,0,0,0,0);
-        IK_R( mapfloat(i, 1, n_sample, 0.00, walk_len) -x_bia , body_shift_L - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.50, 1.00))) , 0, 0, 0, 0, 120 + constrain( mapfloat(i,1,n_sample,0.00,walk_deg) ,walk_deg,0.00));
-        delay(t_delay*0.5);
-    }
-    delay(t_delay_by_pos);
-
-    //#P5 เถ COM ไปขา R
-    for (int i = 1; i <= n_sample; i++)
-    {
-        IK_L( mapfloat(i, 1, n_sample, 0.00, -walk_len) -x_bia , mapfloat(i, 1, n_sample, body_shift_L, -body_shift_R*0.5) - y_bia , h_com , mapfloat(i, 1, n_sample, -bia_body_shift_L*0.2, 0.00), 0, 0, 0, 95 - constrain( mapfloat(i,1,n_sample,0.00,walk_deg) ,walk_deg,0.00));
-        IK_R( mapfloat(i, 1, n_sample, walk_len, 0.00) -x_bia , mapfloat(i, 1, n_sample, body_shift_L, -body_shift_R*0.5) - y_bia , h_com , 0, 0, 0, 0, 120 + constrain( mapfloat(i,1,n_sample,walk_deg,0.00) ,walk_deg,0.00));
-        delay(t_delay);
-    }
-    delay(t_delay_by_pos);
-
-    //#P6 ยกขา L
-    for (int i = 1; i <= n_sample; i++)
-    {
-        IK_L( mapfloat(i, 1, n_sample, -walk_len, 0.00) -x_bia, mapfloat(i, 1, n_sample, -body_shift_R*0.5, -body_shift_R) - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.00, 0.50))) , 0, 0, 0, 0, 95 - constrain( mapfloat(i,1,n_sample,walk_deg,0.00) ,walk_deg,0.00));
-        IK_R( 0.00 -x_bia, mapfloat(i, 1, n_sample, -body_shift_R*0.5, -body_shift_R) - y_bia , h_com , mapfloat(i, 1, n_sample, 0.00, bia_body_shift_R), 0, 0, -bia_hit_R , 120);
-        delay(t_delay*0.2); 
-    }
-    delay(t_delay_by_pos);
-
-    //check signal จาก App หากไม่มีหยุด
-    if (Blue_th.available())
-    {
-      char out_char = Blue_th.read();
-      Blue_th_Flush(); //Clear Buffer
-      Serial.write(out_char);
-      Serial.println("Stop_L");
-      if(out_char != ck)
-      {
-        //#F0 วางขา L
-        for (int i = 1; i <= n_sample; i++)
-        {
-          IK_L( 0.00 -x_bia , mapfloat(i, 1, n_sample, -body_shift_R, 0.00) - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.50, 1.00))) , 0, 0, 0, 0, 95);
-          IK_R(0.00 -x_bia, mapfloat(i, 1, n_sample, -body_shift_R, 0.00) - y_bia , h_com , mapfloat(i, 1, n_sample, bia_body_shift_R, 0.00), 0, 0, -bia_hit_R, 120);
-          delay(t_delay*0.2);
-        }
-        delay(t_delay_by_pos);
-    
-        IK_L(0.00 -x_bia, 0.00, h_com , 0, 0, 0, 0, 95);
-        IK_R(0.00 -x_bia, 0.00, h_com , 0, 0, 0, 0, 120);
-    
-        break;
-      }
-    }
-    else
-    {
-      Serial.println("Stop_L without signal");
-      //#F0 วางขา L
-      for (int i = 1; i <= n_sample; i++)
-      {
-        IK_L( 0.00 -x_bia , mapfloat(i, 1, n_sample, -body_shift_R, 0.00) - y_bia , (h_com - bezier(mapfloat(i, 1, n_sample, 0.50, 1.00))) , 0, 0, 0, 0, 95);
-        IK_R(0.00 -x_bia, mapfloat(i, 1, n_sample, -body_shift_R, 0.00) - y_bia , h_com , mapfloat(i, 1, n_sample, bia_body_shift_R, 0.00), 0, 0, -bia_hit_R, 120);
-        delay(t_delay*0.2);
-      }
-      delay(t_delay_by_pos);
-  
-      IK_L(0.00 -x_bia, 0.00 - y_bia, h_com , 0, 0, 0, 0, 95);
-      IK_R(0.00 -x_bia, 0.00 - y_bia, h_com , 0, 0, 0, 0, 120);
-      
-      break;
-    }
-
-  }
-    /*
-    //#F1 เถCom มาตรงกลาง
-    for (int i = 1; i <= n_sample; i++)
-    {
-      IK_L( 0.00 , mapfloat(i, 1, n_sample, -body_shift_R, 0.00) , h_com , 0, 0, 0, 0, 90);
-      IK_R(0.00, mapfloat(i, 1, n_sample, -body_shift_R, 0.00) , h_com , mapfloat(i, 1, n_sample, bia_body_shift_R, 0.00), 0, 0, 0, 120);
-      delay(t_delay*0.5);
-    }
-    delay(t_delay_by_pos);
-    */
-  }
-}
-
 void walk2()
 {
     int n_sample = 20;
@@ -333,7 +210,7 @@ void walk2()
 
     //หมายถึงจังหวะที่ COM อยู่ตรงขาข้างนั้นๆ
     float body_shift_L = body_shift+0.007;
-    float body_shift_R = body_shift+0.000; 
+    float body_shift_R = body_shift+0.007; 
     
     float bia_body_shift_L = bia_body_shift+0.00;
     float bia_body_shift_R = bia_body_shift+0.00;
@@ -435,4 +312,38 @@ void walk2()
     }
     delay(t_delay_by_pos);
 
+}
+
+void arm_walk()
+{
+  moveDegree(5, 0);//shoulder_Y L 
+  moveDegree(6, 90);//shoulder_X L 
+  moveDegree(7, 90);//arm L   
+
+  moveDegree(10, 180);//shoulder_Y R 
+  moveDegree(9, 90);//shoulder_X R 
+  moveDegree(8, 90);//arm R
+}
+
+void pos_hello()
+{
+    int n_sample = 20;
+    int t_delay = 10;
+    int t_delay_by_pos = 1000;
+    //ยกมือ
+    for (int i = 1; i <= n_sample; i++)
+    {
+      moveDegree(5, map(i,1,n_sample,90,150));//shoulder_X L 
+      moveDegree(6, map(i,1,n_sample,30,90));//shoulder_Y L 
+      delay(t_delay*0.5);
+    }
+    delay(t_delay_by_pos);
+    
+    //มือลง
+    for (int i = 1; i <= n_sample; i++)
+    {
+      moveDegree(5, map(i,1,n_sample,150,90));//shoulder_X L 
+      moveDegree(6, map(i,1,n_sample,90,30));//shoulder_Y L 
+      delay(t_delay*0.5);
+    }
 }
