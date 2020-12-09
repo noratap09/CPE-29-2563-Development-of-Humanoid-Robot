@@ -179,6 +179,10 @@ public class JoyStickClass {
 	public int getOffset() {
 		return OFFSET;
 	}
+
+	public boolean get_touch_state() {
+		return touch_state;
+	}
 	
 	public void setStickAlpha(int alpha) {
 		STICK_ALPHA = alpha;

@@ -2,16 +2,16 @@ package com.example.android_app;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.IOException;
 
@@ -19,6 +19,7 @@ public class Manual_control extends AppCompatActivity {
     RelativeLayout layout_joystick;
     ImageView image_joystick, image_border;
     TextView textView1, textView2, textView3, textView4, textView5;
+    Button btn_shoting_mode;
 
     BluetoothSocket bt_socket;
 
@@ -37,6 +38,16 @@ public class Manual_control extends AppCompatActivity {
         textView3 = (TextView)findViewById(R.id.textView3);
         textView4 = (TextView)findViewById(R.id.textView4);
         textView5 = (TextView)findViewById(R.id.textView5);
+        btn_shoting_mode = (Button)findViewById(R.id.btn_shoting_mode);
+
+        btn_shoting_mode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                System.out.println("Mode M_shoting");
+                Intent to_manual_shoting = new Intent(getApplicationContext(), Manual_shoting.class);
+                startActivity(to_manual_shoting);
+            }
+        });
 
         layout_joystick = (RelativeLayout)findViewById(R.id.layout_joystick);
 
@@ -52,71 +63,42 @@ public class Manual_control extends AppCompatActivity {
         layout_joystick.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 js.drawStick(arg1);
-                if(arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) {
+                if(js.get_touch_state()) {
                     textView1.setText("X : " + String.valueOf(js.getX()));
                     textView2.setText("Y : " + String.valueOf(js.getY()));
                     textView3.setText("Angle : " + String.valueOf(js.getAngle()));
                     textView4.setText("Distance : " + String.valueOf(js.getDistance()));
 
-                    int direction = js.get8Direction();
+                    int direction = js.get4Direction();
                     if(direction == JoyStickClass.STICK_UP) {
                         try {
-                            bt_socket.getOutputStream().write("f".getBytes());
+                            bt_socket.getOutputStream().write("fd\n".getBytes());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                         textView5.setText("Direction : Up");
-                    } else if(direction == JoyStickClass.STICK_UPRIGHT) {
-                        try {
-                            bt_socket.getOutputStream().write("f".getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        textView5.setText("Direction : Up Right");
                     } else if(direction == JoyStickClass.STICK_RIGHT) {
                         try {
-                            bt_socket.getOutputStream().write("r".getBytes());
+                            bt_socket.getOutputStream().write("rd\n".getBytes());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                         textView5.setText("Direction : Right");
-                    } else if(direction == JoyStickClass.STICK_DOWNRIGHT) {
-                        try {
-                            bt_socket.getOutputStream().write("b".getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        textView5.setText("Direction : Down Right");
                     } else if(direction == JoyStickClass.STICK_DOWN) {
                         try {
-                            bt_socket.getOutputStream().write("b".getBytes());
+                            bt_socket.getOutputStream().write("bd\n".getBytes());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                         textView5.setText("Direction : Down");
-                    } else if(direction == JoyStickClass.STICK_DOWNLEFT) {
+                    }  else if(direction == JoyStickClass.STICK_LEFT) {
                         try {
-                            bt_socket.getOutputStream().write("b".getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        textView5.setText("Direction : Down Left");
-                    } else if(direction == JoyStickClass.STICK_LEFT) {
-                        try {
-                            bt_socket.getOutputStream().write("l".getBytes());
+                            bt_socket.getOutputStream().write("ld\n".getBytes());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                         textView5.setText("Direction : Left");
-                    } else if(direction == JoyStickClass.STICK_UPLEFT) {
-                        try {
-                            bt_socket.getOutputStream().write("f".getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        textView5.setText("Direction : Up Left");
-                    } else if(direction == JoyStickClass.STICK_NONE) {
+                    }  else if(direction == JoyStickClass.STICK_NONE) {
                         textView5.setText("Direction : Center");
                     }
                 } else if(arg1.getAction() == MotionEvent.ACTION_UP) {
@@ -129,5 +111,39 @@ public class Manual_control extends AppCompatActivity {
                 return true;
             }
         });
+
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                byte[] buffer = new byte[1024];
+                int bytes;
+                while (true) {
+                    try {
+                        //Check Mode Change
+                        bytes = bt_socket.getInputStream().read(buffer);
+                        String str = new String(buffer, 0,bytes);
+                        System.out.println(str);
+                        if(str.equals("A"))
+                        {
+                            System.out.println("Mode A");
+                            Intent to_interaction = new Intent(getApplicationContext(), Interaction_control.class);
+                            startActivity(to_interaction);
+                            break;
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+
+                        //Check BT Connect
+                        System.out.println("BT DISCONECT!");
+                        Intent to_main = new Intent(getApplicationContext(), MainActivity.class);
+                        startActivity(to_main);
+                        break;
+
+                    }
+                }
+            }
+        };
+
+        thread.start();
     }
 }
