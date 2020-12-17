@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.ThemedSpinnerAdapter;
 
 import java.io.IOException;
 
@@ -46,6 +47,12 @@ public class Manual_shoting extends AppCompatActivity {
         btn_walk_mode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                try {
+                    bt_socket.getOutputStream().write("walk_mode\n".getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 System.out.println("Mode M_walk");
                 Intent to_manual = new Intent(getApplicationContext(), Manual_control.class);
                 startActivity(to_manual);
@@ -159,38 +166,6 @@ public class Manual_shoting extends AppCompatActivity {
             }
         });
 
-        Thread thread = new Thread() {
-            @Override
-            public void run() {
-                byte[] buffer = new byte[1024];
-                int bytes;
-                while (true) {
-                    try {
-                        //Check Mode Change
-                        bytes = bt_socket.getInputStream().read(buffer);
-                        String str = new String(buffer, 0,bytes);
-                        System.out.println(str);
-                        if(str.equals("A"))
-                        {
-                            System.out.println("Mode A");
-                            Intent to_interaction = new Intent(getApplicationContext(), Interaction_control.class);
-                            startActivity(to_interaction);
-                            break;
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-
-                        //Check BT Connect
-                        System.out.println("BT DISCONECT!");
-                        Intent to_main = new Intent(getApplicationContext(), MainActivity.class);
-                        startActivity(to_main);
-                        break;
-                    }
-                }
-            }
-        };
-
-        thread.start();
     }
 
     private int map_value(int min1, int max1, int min2, int max2, int x) {

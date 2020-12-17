@@ -43,6 +43,12 @@ public class Manual_control extends AppCompatActivity {
         btn_shoting_mode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                try {
+                    bt_socket.getOutputStream().write("gun_mode\n".getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 System.out.println("Mode M_shoting");
                 Intent to_manual_shoting = new Intent(getApplicationContext(), Manual_shoting.class);
                 startActivity(to_manual_shoting);
@@ -112,7 +118,8 @@ public class Manual_control extends AppCompatActivity {
             }
         });
 
-        Thread thread = new Thread() {
+        /*
+        final Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 byte[] buffer = new byte[1024];
@@ -125,6 +132,12 @@ public class Manual_control extends AppCompatActivity {
                         System.out.println(str);
                         if(str.equals("A"))
                         {
+                            try {
+                                bt_socket.getOutputStream().write("interaction_mode\n".getBytes());
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
                             System.out.println("Mode A");
                             Intent to_interaction = new Intent(getApplicationContext(), Interaction_control.class);
                             startActivity(to_interaction);
@@ -143,7 +156,8 @@ public class Manual_control extends AppCompatActivity {
                 }
             }
         };
+        new Thread(runnable).start();
+        */
 
-        thread.start();
     }
 }

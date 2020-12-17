@@ -23,7 +23,7 @@ import android.speech.RecognizerIntent;
 import android.widget.Toast;
 
 public class Interaction_control extends AppCompatActivity {
-    Button btn_stt;
+    Button btn_stt,btn_ar_mode;
     TextView txt_stt;
     BluetoothSocket bt_socket;
     private final int REQ_CODE = 100;
@@ -38,6 +38,7 @@ public class Interaction_control extends AppCompatActivity {
         bt_socket = MainActivity.bt_socket;
 
         btn_stt = (Button)findViewById(R.id.btn_stt);
+        btn_ar_mode = (Button)findViewById(R.id.btn_ar_mode);
         txt_stt = (TextView)findViewById(R.id.txt_stt);
 
         btn_stt.setOnClickListener(new View.OnClickListener() {
@@ -55,7 +56,22 @@ public class Interaction_control extends AppCompatActivity {
             }
         });
 
-        Thread thread = new Thread() {
+        btn_ar_mode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    bt_socket.getOutputStream().write("gun_mode\n".getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Intent to_ar = new Intent(getApplicationContext(), AR_Marker_detect.class);
+                startActivity(to_ar);
+            }
+        });
+
+        /*
+        Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 byte[] buffer = new byte[1024];
@@ -68,6 +84,12 @@ public class Interaction_control extends AppCompatActivity {
                         System.out.println(str);
                         if(str.equals("M"))
                         {
+                            try {
+                                bt_socket.getOutputStream().write("walk_mode\n".getBytes());
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
                             System.out.println("Mode M");
                             Intent to_manual = new Intent(getApplicationContext(), Manual_control.class);
                             startActivity(to_manual);
@@ -85,8 +107,9 @@ public class Interaction_control extends AppCompatActivity {
                 }
             }
         };
+        new Thread(runnable).start();
+         */
 
-        thread.start();
     }
 
     @Override
