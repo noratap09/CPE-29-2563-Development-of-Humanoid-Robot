@@ -1,3 +1,27 @@
+void laser_L(int value)
+{
+  if(value == 0)
+  {
+    digitalWrite(laser_L_pin_vcc,LOW);
+  }
+  else if(value==1)
+  {
+    digitalWrite(laser_L_pin_vcc,HIGH);
+  }
+}
+
+void laser_R(int value)
+{
+  if(value == 0)
+  {
+    digitalWrite(laser_R_pin_vcc,LOW);
+  }
+  else if(value==1)
+  {
+    digitalWrite(laser_R_pin_vcc,HIGH);
+  }
+}
+
 void dc_motor_R(int value)
 {
   if(value == 0)

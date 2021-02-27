@@ -19,7 +19,7 @@ public class Manual_control extends AppCompatActivity {
     RelativeLayout layout_joystick;
     ImageView image_joystick, image_border;
     TextView textView1, textView2, textView3, textView4, textView5;
-    Button btn_shoting_mode;
+    Button btn_shoting_mode,btn_ls,btn_rs;
 
     BluetoothSocket bt_socket;
 
@@ -39,6 +39,8 @@ public class Manual_control extends AppCompatActivity {
         textView4 = (TextView)findViewById(R.id.textView4);
         textView5 = (TextView)findViewById(R.id.textView5);
         btn_shoting_mode = (Button)findViewById(R.id.btn_shoting_mode);
+        btn_ls = (Button)findViewById(R.id.btn_ls);
+        btn_rs = (Button)findViewById(R.id.btn_rs);
 
         btn_shoting_mode.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -55,13 +57,49 @@ public class Manual_control extends AppCompatActivity {
             }
         });
 
+        btn_ls.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                try {
+                    bt_socket.getOutputStream().write("ls\n".getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    System.out.println("Slide Left");
+                    textView5.setText("Direction : Slide Left");
+                } else if(event.getAction() == MotionEvent.ACTION_UP) {
+                    textView5.setText("Direction : ");
+                }
+                return false;
+            }
+        });
+
+        btn_rs.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                try {
+                    bt_socket.getOutputStream().write("rs\n".getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    System.out.println("Slide Right");
+                    textView5.setText("Direction : Slide Right");
+                } else if(event.getAction() == MotionEvent.ACTION_UP) {
+                    textView5.setText("Direction : ");
+                }
+                return false;
+            }
+        });
+
         layout_joystick = (RelativeLayout)findViewById(R.id.layout_joystick);
 
-        js = new JoyStickClass(getApplicationContext(), layout_joystick, R.drawable.image_button);
+        js = new JoyStickClass(getApplicationContext(), layout_joystick, R.drawable.image_button,false);
 
         js.setStickSize(150, 150);
         js.setLayoutSize(500, 500);
-        js.setLayoutAlpha(150);
+        js.setLayoutAlpha(255);
         js.setStickAlpha(100);
         js.setOffset(90);
         js.setMinimumDistance(50);
@@ -82,6 +120,7 @@ public class Manual_control extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        System.out.println("UP");
                         textView5.setText("Direction : Up");
                     } else if(direction == JoyStickClass.STICK_RIGHT) {
                         try {
@@ -89,6 +128,7 @@ public class Manual_control extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        System.out.println("Right");
                         textView5.setText("Direction : Right");
                     } else if(direction == JoyStickClass.STICK_DOWN) {
                         try {
@@ -96,6 +136,7 @@ public class Manual_control extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        System.out.println("Down");
                         textView5.setText("Direction : Down");
                     }  else if(direction == JoyStickClass.STICK_LEFT) {
                         try {
@@ -103,8 +144,10 @@ public class Manual_control extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        System.out.println("Left");
                         textView5.setText("Direction : Left");
                     }  else if(direction == JoyStickClass.STICK_NONE) {
+                        System.out.println("Center");
                         textView5.setText("Direction : Center");
                     }
                 } else if(arg1.getAction() == MotionEvent.ACTION_UP) {

@@ -24,6 +24,8 @@ public class JoyStickClass {
 	private int STICK_ALPHA = 200;
 	private int LAYOUT_ALPHA = 200;
 	private int OFFSET = 0;
+
+	private boolean HOLD_DRAW = false; // add for hold draw
 	
 	private Context mContext;
 	private ViewGroup mLayout;
@@ -39,11 +41,13 @@ public class JoyStickClass {
 	
 	private boolean touch_state = false;
 	
-	public JoyStickClass (Context context, ViewGroup layout, int stick_res_id) {
+	public JoyStickClass (Context context, ViewGroup layout, int stick_res_id,boolean hold_draw) {
 		mContext = context;
 
 		stick = BitmapFactory.decodeResource(mContext.getResources(),
 				stick_res_id);
+
+		HOLD_DRAW = hold_draw; // Add for hold draw
 		
         stick_width = stick.getWidth();
         stick_height = stick.getHeight();
@@ -82,7 +86,9 @@ public class JoyStickClass {
 				mLayout.removeView(draw);
 			}
 		} else if(arg1.getAction() == MotionEvent.ACTION_UP) {
-			mLayout.removeView(draw);
+			if(!HOLD_DRAW) {
+				mLayout.removeView(draw);
+			}
 			touch_state = false;
 		}
 	}

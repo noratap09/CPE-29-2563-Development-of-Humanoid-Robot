@@ -110,8 +110,8 @@ public class Manual_shoting extends AppCompatActivity {
         joystick_L = (RelativeLayout) findViewById(R.id.joystick_L);
         joystick_R = (RelativeLayout) findViewById(R.id.joystick_R);
 
-        js_L = new JoyStickClass(getApplicationContext(), joystick_L, R.drawable.image_button);
-        js_R = new JoyStickClass(getApplicationContext(), joystick_R, R.drawable.image_button);
+        js_L = new JoyStickClass(getApplicationContext(), joystick_L, R.drawable.image_button,true);
+        js_R = new JoyStickClass(getApplicationContext(), joystick_R, R.drawable.image_button,true);
 
         js_L.setStickSize(150, 150);
         js_L.setLayoutSize(400, 400);

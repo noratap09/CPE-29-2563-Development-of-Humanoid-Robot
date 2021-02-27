@@ -23,6 +23,11 @@ const int dc_motor_pin_A1 = 6;
 const int dc_motor_pin_A2 = 7;
 const int dc_motor_pin_B1 = 8;
 const int dc_motor_pin_B2 = 9;
+const int laser_L_pin_vcc = A0;
+const int laser_L_pin_gnd = A1;
+const int laser_R_pin_vcc = A2;
+const int laser_R_pin_gnd = A3;
+
 
 char mode = 'M';
 
@@ -34,6 +39,15 @@ void setup() {
   pinMode(dc_motor_pin_A2,OUTPUT);
   pinMode(dc_motor_pin_B1,OUTPUT);
   pinMode(dc_motor_pin_B2,OUTPUT);
+
+  pinMode(laser_L_pin_gnd,OUTPUT);// Pull out to GND
+  digitalWrite(laser_L_pin_gnd,LOW); //Make it GND
+
+  pinMode(laser_R_pin_gnd,OUTPUT);// Pull out to GND
+  digitalWrite(laser_R_pin_gnd,LOW); //Make it GND
+
+  pinMode(laser_L_pin_vcc,OUTPUT);
+  pinMode(laser_R_pin_vcc,OUTPUT);
   
   Serial.begin(9600);
   Serial.println("Robot Start!!");
@@ -52,6 +66,17 @@ void setup() {
   //walk(5,0.00,-30.00,0.014,5.00,0.00,5);
   //walk(10,-0.012,0);
 
+  randomSeed(analogRead(0)); 
+  center_pos();
+  arm_walk();
+  delay(1000);
+  //walk(5,0.03,0.00,0.00,0.015,4.00,0.00,5,"fd",true);
+  //walk(5,-0.03,0.00,0.00,0.015,4.00,0.00,5,"bd",true);
+  //walk(5,0.00,30.00,0.00,0.015,4.00,0.00,5,"rd",true);
+  //walk(5,0.00,-30.00,0.00,0.015,4.00,0.00,5,"ld",true);
+  //walk(5,0.00,0.00,-0.03,0.015,4.00,0.00,5,"ls",true);
+  //walk(5,0.00,0.00,0.03,0.015,4.00,0.00,5,"rs",true);
+
   //walk2();
 
   //Turn R
@@ -59,8 +84,7 @@ void setup() {
 
   //Turn L
   //turn_L();
-  center_pos();
-  arm_walk();
+  
   //walk(10,0.03,-10.00,0.015,5.00,0.00,10,'f');
 }
 
@@ -72,11 +96,13 @@ void loop() {
 
     if(mode=='M' && sw_value == 1)
     { 
+      Serial.println("To_A");
       Blue_th.write("A"); 
       delay(100);
     }
     else if(mode=='A' && sw_value == 0)
     { 
+      Serial.println("To_M");
       Blue_th.write("M"); 
       delay(100);
     }
@@ -94,25 +120,57 @@ void loop() {
       Serial.println(out_char);
       if(out_char=="fd") // Font
       {
-        walk(10,0.03,10.00,0.015,6.00,0.00,10,"fd");
+        walk(50,0.03,0.00,0.00,0.015,6.00,0.00,5,"fd",false);
       }
       else if(out_char=="rd") //Right
       {
         //Trun_R(30.00,0.015,5.00,0.00,10,'r'); ยังไม่ OK
-        walk(10,0.00,30.00,0.014,5.00,0.00,5,"rd");
+        walk(50,0.00,30.00,0.00,0.015,6.00,0.00,5,"rd",false);
       }
       else if(out_char=="ld") //Left
       {
         //Trun_L(-30.00,0.015,5.00,0.00,10,'l'); ยังไม่ OK
-        walk(10,0.00,-30.00,0.014,5.00,0.00,5,"ld");
+        walk(50,0.00,-30.00,0.00,0.015,6.00,0.00,5,"ld",false);
       }
       else if(out_char=="bd") //Back
       {
-        walk(10,-0.03,0.00,0.014,6.00,0.00,10,"bd");
+        walk(50,-0.03,0.00,0.00,0.015,6.00,0.00,5,"bd",false);
+      }
+      else if(out_char=="ls") //slide left
+      {
+        walk(50,0.00,0.00,0.03,0.015,6.00,0.00,5,"ls",false);
+      }
+      else if(out_char=="rs") //slide right
+      {
+        walk(50,0.00,0.00,-0.03,0.015,6.00,0.00,5,"rs",false);
       }
       else if(out_char=="hello") //Pos Hello
       {
         pos_hello();
+      }
+      else if(out_char=="attention") //Pos attention
+      {
+        pos_attention();
+      }
+      else if(out_char.indexOf("talk")>=0) //talking motion
+      {
+        int num_talk = out_char.substring(out_char.indexOf(":")+1).toInt();
+        pos_talk(num_talk);
+      }
+      else if(out_char.indexOf("sitdown")>=0) //sitdown motion
+      {
+        int num = out_char.substring(out_char.indexOf(":")+1).toInt();
+        pos_sitdown(num);
+      }
+      else if(out_char.indexOf("swing_arm")>=0) //swing_arm motion
+      {
+        int num = out_char.substring(out_char.indexOf(":")+1).toInt();
+        pos_swing_arm(num);
+      }
+      else if(out_char.indexOf("swing_body")>=0) //swing_body motion
+      {
+        int num = out_char.substring(out_char.indexOf(":")+1).toInt();
+        pos_swing_body(num);
       }
       else if(out_char.indexOf("gun_l_pos")>=0) // gun_l_pos
       {
@@ -150,6 +208,17 @@ void loop() {
         delay(500);
         dc_motor_R(0);
       }
+      else if(out_char=="gun_mode") // gun_mode
+      {
+        laser_L(1);
+        laser_R(1);
+      }
+      else if(out_char=="walk_mode" or out_char=="interaction_mode") // walk_mode
+      {
+        laser_L(0);
+        laser_R(0);
+        arm_walk();
+      }
       //Blue_th_Flush(); //Clear Buffer
     }
 
@@ -175,6 +244,12 @@ float mapfloat(float x, float in_min, float in_max, float out_min, float out_max
 {
   //float val = smooth(in_min,in_max,x,in_max);
   return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
+}
+
+float constrainfloat(float x, float x_min, float x_max)
+{
+  if(x <= x_max && x >= x_min){return x; }
+  else{ return 0.00; }
 }
 
 float smooth(float x0 , float xf , float t , float tf)
@@ -317,11 +392,11 @@ void walk2()
 void arm_walk()
 {
   moveDegree(5, 0);//shoulder_Y L 
-  moveDegree(6, 90);//shoulder_X L 
+  moveDegree(6, 120);//shoulder_X L  90 ตรง
   moveDegree(7, 90);//arm L   
 
   moveDegree(10, 180);//shoulder_Y R 
-  moveDegree(9, 90);//shoulder_X R 
+  moveDegree(9, 60);//shoulder_X R 90 ตรง
   moveDegree(8, 90);//arm R
 }
 
@@ -333,8 +408,7 @@ void pos_hello()
     //ยกมือ
     for (int i = 1; i <= n_sample; i++)
     {
-      moveDegree(5, map(i,1,n_sample,90,150));//shoulder_X L 
-      moveDegree(6, map(i,1,n_sample,30,90));//shoulder_Y L 
+      moveDegree(5, map(i,1,n_sample,0,90));//shoulder_Y L 
       delay(t_delay*0.5);
     }
     delay(t_delay_by_pos);
@@ -342,8 +416,187 @@ void pos_hello()
     //มือลง
     for (int i = 1; i <= n_sample; i++)
     {
-      moveDegree(5, map(i,1,n_sample,150,90));//shoulder_X L 
-      moveDegree(6, map(i,1,n_sample,90,30));//shoulder_Y L 
+      moveDegree(5, map(i,1,n_sample,90,0));//shoulder_Y L 
       delay(t_delay*0.5);
+    }
+}
+
+void pos_attention()
+{
+    int n_sample = 20;
+    int t_delay = 10;
+    int t_delay_by_pos = 3000;
+    //ยกมือ
+    for (int i = 1; i <= n_sample; i++)
+    {
+      moveDegree(6, map(i,1,n_sample,120,90));//shoulder_X L  90 ตรง
+      moveDegree(9, map(i,1,n_sample,60,90));//shoulder_X R 90 ตรง
+      delay(t_delay*0.5);
+    }
+    delay(t_delay_by_pos);
+
+    for (int i = 1; i <= n_sample; i++)
+    {
+      moveDegree(6, map(i,1,n_sample,90,120));//shoulder_X L  90 ตรง
+      moveDegree(9, map(i,1,n_sample,90,60));//shoulder_X R 90 ตรง
+      delay(t_delay*0.5);
+    } 
+}
+
+void pos_sitdown(int num)
+{
+    int n_sample = 20;
+    int t_delay = 20;
+    int t_delay_by_pos = 100;
+    for(int k=0;k<num;k++)
+    {
+      //นั่งลง
+      for (int i = 1; i <= n_sample; i++)
+      {
+        IK_L(0.00, 0.01, (0.1152 - 0.5*bezier(mapfloat(i, 1, n_sample, 0.00, 0.50))) , 0, 0, 0, 0, 95);
+        IK_R(0.00, 0.01, (0.1152 - 0.5*bezier(mapfloat(i, 1, n_sample, 0.00, 0.50))), 0, 0, 0, 0, 120);
+        delay(t_delay);
+      }
+      delay(t_delay_by_pos);
+
+      //ยื่นขึ้น
+      for (int i = 1; i <= n_sample; i++)
+      {
+        IK_L(0.00, 0.01, (0.1152 - 0.5*bezier(mapfloat(i, 1, n_sample, 0.50, 1.00))) , 0, 0, 0, 0, 95);
+        IK_R(0.00, 0.01, (0.1152 - 0.5*bezier(mapfloat(i, 1, n_sample, 0.50, 1.00))), 0, 0, 0, 0, 120);
+        delay(t_delay);
+      } 
+    }
+}
+
+void pos_swing_arm(int num)
+{
+    int n_sample = 30;
+    int t_delay = 20;
+    int t_delay_by_pos = 100;
+    for(int k=0;k<num;k++)
+    {
+      //ยกมือ
+      for (int i = 1; i <= n_sample; i++)
+      {
+        moveDegree(5, map(i,1,n_sample,0,130));//shoulder_Y L 
+        moveDegree(10, map(i,1,n_sample,180,50));//shoulder_Y R 
+        delay(t_delay);
+      }
+      delay(t_delay_by_pos);
+
+      //มือลง
+      for (int i = 1; i <= n_sample; i++)
+      {
+        moveDegree(5, map(i,1,n_sample,130,0));//shoulder_Y L
+        moveDegree(10, map(i,1,n_sample,50,180));//shoulder_Y R
+        delay(t_delay);
+      } 
+    }
+}
+
+void pos_swing_body(int num)
+{
+    if(num<=0) return; //ภ้า num <= 0 ออก funtion
+  
+    int n_sample = 20;
+    int t_delay = 20;
+    int t_delay_by_pos = 100;
+
+    //กลาง->ขวา
+    for (int i = 1; i <= n_sample; i++)
+    {
+      IK_L(0.00, mapfloat(i, 1, n_sample, 0.01, -0.015) , 0.1152, 0, 0, 0, 0, 95);
+      IK_R(0.00, mapfloat(i, 1, n_sample, 0.01, -0.015), 0.1152, 0, 0, 0, 0, 120);
+
+      moveDegree(6, 120);//shoulder_X L  90 ตรง
+      moveDegree(9, map(i,1,n_sample,60,10));//shoulder_X R 90 ตรง
+      delay(t_delay);
+    }
+    delay(t_delay_by_pos);
+    
+    for(int k=0;k<num;k++)
+    {
+      //ขวา->ซ้าย
+      for (int i = 1; i <= n_sample; i++)
+      {
+        IK_L(0.00, mapfloat(i, 1, n_sample, -0.015, 0.015) , 0.1152, 0, 0, 0, 0, 95);
+        IK_R(0.00, mapfloat(i, 1, n_sample, -0.015, 0.015), 0.1152, 0, 0, 0, 0, 120);
+
+        moveDegree(6, map(i,1,n_sample,120,170));//shoulder_X L  90 ตรง
+        moveDegree(9, map(i,1,n_sample,10,60));//shoulder_X R 90 ตรง
+        delay(t_delay);
+      }
+      delay(t_delay_by_pos);
+
+      //ซ้าย->ขวา
+      for (int i = 1; i <= n_sample; i++)
+      {
+        IK_L(0.00, mapfloat(i, 1, n_sample, 0.015, -0.015) , 0.1152, 0, 0, 0, 0, 95);
+        IK_R(0.00, mapfloat(i, 1, n_sample, 0.015, -0.015), 0.1152, 0, 0, 0, 0, 120);
+
+        moveDegree(6, map(i,1,n_sample,170,120));//shoulder_X L  90 ตรง
+        moveDegree(9, map(i,1,n_sample,60,10));//shoulder_X R 90 ตรง
+        delay(t_delay);
+      } 
+      delay(t_delay_by_pos);
+    }
+    //ซ้าย->กลาง
+    for (int i = 1; i <= n_sample; i++)
+    {
+      IK_L(0.00, mapfloat(i, 1, n_sample, -0.015, 0.01) , 0.1152, 0, 0, 0, 0, 95);
+      IK_R(0.00, mapfloat(i, 1, n_sample, -0.015, 0.01), 0.1152, 0, 0, 0, 0, 120);
+
+      moveDegree(6, 120);//shoulder_X L  90 ตรง
+      moveDegree(9, map(i,1,n_sample,10,60));//shoulder_X R 90 ตรง
+      delay(t_delay);
+    }
+    delay(t_delay_by_pos);
+}
+
+void pos_talk(int num_talk)
+{
+    int n_sample = 20;
+    int t_delay = 10;
+    int t_delay_by_pos = 1000;
+    for(int num=0;num<num_talk;num++)
+    {
+      long int num_ran = random(2);
+      if(num_ran==0)
+      {
+        //ยกมือ L
+        for (int i = 1; i <= n_sample; i++)
+        {
+          moveDegree(5, map(i,1,n_sample,0,130));//shoulder_Y L 
+          delay(t_delay*0.5);
+        }
+        delay(t_delay_by_pos);
+        
+        //มือลง L
+        for (int i = 1; i <= n_sample; i++)
+        {
+          moveDegree(5, map(i,1,n_sample,130,0));//shoulder_Y L 
+          delay(t_delay*0.5);
+        }
+        delay(t_delay_by_pos);
+      }
+      else if(num_ran==1)
+      {
+        //ยกมือ R
+        for (int i = 1; i <= n_sample; i++)
+        {
+          moveDegree(10, map(i,1,n_sample,180,50));//shoulder_Y R 
+          delay(t_delay*0.5);
+        }
+        delay(t_delay_by_pos);
+        
+        //มือลง R
+        for (int i = 1; i <= n_sample; i++)
+        {
+          moveDegree(10, map(i,1,n_sample,50,180));//shoulder_Y R
+          delay(t_delay*0.5);
+        }
+        delay(t_delay_by_pos);
+      }
     }
 }

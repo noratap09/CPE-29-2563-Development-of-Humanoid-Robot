@@ -7,9 +7,11 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -126,7 +128,24 @@ public class MainActivity extends AppCompatActivity {
                         strings[index] = device.getName();
                         index++;
                     }
-                    ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,strings);
+                    // ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,strings) สำหรับปกติ
+                    ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,strings){
+                        @Override
+                        public View getView(int position, View convertView, ViewGroup parent){
+                            // Get the Item from ListView
+                            View view = super.getView(position, convertView, parent);
+
+                            // Initialize a TextView for ListView each Item
+                            TextView tv = (TextView) view.findViewById(android.R.id.text1);
+
+                            // Set the text color of TextView (ListView Item)
+                            tv.setTextColor(Color.BLUE);
+
+                            // Generate ListView Item using TextView
+                            return view;
+                        }
+                    };
+
                     listV_device.setAdapter(arrayAdapter);
                 }
             }
@@ -150,6 +169,10 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                     lab_status.setText("Connection Fail!");
                 }
+
+
+                //Intent to_manual = new Intent(getApplicationContext(),Interaction_control.class);
+                //startActivity(to_manual);
 
             }
         });

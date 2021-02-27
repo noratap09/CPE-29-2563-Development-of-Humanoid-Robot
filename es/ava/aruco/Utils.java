@@ -306,7 +306,7 @@ public abstract class Utils {
 
 		double[] pos = new double[3];
 		Tvec.get(0,0,pos);
-		Imgproc.putText(frame, String.format("[%.2f,%.2f,%.2f]",pos[0],pos[1],pos[2]), pts.get(0), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(0,255,0),2);
+		Imgproc.putText(frame, String.format("[%.2f,%.2f,%.2f]",pos[0],pos[1],pos[2]), pts.get(0), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, color,2);
 		//System.out.println("Tvec:"+Tvec.dump());
 	}
     

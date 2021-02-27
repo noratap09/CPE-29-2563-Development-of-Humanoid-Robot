@@ -5,11 +5,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.graphics.drawable.AnimationDrawable;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 
 import android.os.Environment;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
@@ -46,12 +49,18 @@ import com.example.android_app.es.ava.aruco.MarkerDetector;
 
 import android.bluetooth.BluetoothSocket;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ThemedSpinnerAdapter;
 
 public class AR_Marker_detect extends AppCompatActivity implements CvCameraViewListener2 {
 
     BluetoothSocket bt_socket;
-    Button btn_to_interaction_mode;
+    Button btn_to_interaction_mode,btn_auto_shot,btn_rl,btn_rr;
+    ImageView img_warning;
+    AnimationDrawable Anime_warning;
+
+    MediaPlayer mediaPlayer;
+    String Shooting_list;
 
     //Constants
     private static final String TAG = "Aruco";
@@ -96,7 +105,14 @@ public class AR_Marker_detect extends AppCompatActivity implements CvCameraViewL
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
+        img_warning = (ImageView) findViewById(R.id.img_warning);
         btn_to_interaction_mode = (Button) findViewById(R.id.btn_to_interaction_mode);
+        btn_auto_shot = (Button) findViewById(R.id.btn_auto_shot);
+        btn_rl = (Button) findViewById(R.id.btn_reload_L_2);
+        btn_rr = (Button) findViewById(R.id.btn_reload_R_2);
+
+        img_warning.setImageResource(R.drawable.anime_warning);
+        Anime_warning = (AnimationDrawable)img_warning.getDrawable();
 
         btn_to_interaction_mode.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -110,6 +126,74 @@ public class AR_Marker_detect extends AppCompatActivity implements CvCameraViewL
                 System.out.println("Mode A");
                 Intent to_interaction = new Intent(getApplicationContext(), Interaction_control.class);
                 startActivity(to_interaction);
+            }
+        });
+
+        btn_auto_shot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (Shooting_list != "") {
+                    try {
+                        Anime_warning.start();
+                        img_warning.setVisibility(View.VISIBLE);
+
+                        mediaPlayer = MediaPlayer.create(AR_Marker_detect.this, R.raw.warning);
+                        mediaPlayer.start();
+
+                        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            @Override
+                            public void onCompletion(MediaPlayer mp) {
+                                Anime_warning.stop();
+                                img_warning.setVisibility(View.INVISIBLE);
+
+                                //DO ACTION
+                                if (Shooting_list.charAt(0) == 'r') {
+                                    try {
+                                        bt_socket.getOutputStream().write("gun_r_shot\n".getBytes());
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                } else if (Shooting_list.charAt(0) == 'l') {
+                                    try {
+                                        bt_socket.getOutputStream().write("gun_l_shot\n".getBytes());
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                //End Action
+
+                                mediaPlayer = MediaPlayer.create(AR_Marker_detect.this, R.raw.clear);
+                                mediaPlayer.start();
+                            }
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        btn_rl.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                try {
+                    bt_socket.getOutputStream().write("gun_l_reload\n".getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return false;
+            }
+        });
+
+        btn_rr.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                try {
+                    bt_socket.getOutputStream().write("gun_r_reload\n".getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return false;
             }
         });
 
@@ -191,30 +275,72 @@ public class AR_Marker_detect extends AppCompatActivity implements CvCameraViewL
         //Populate detectedMarkers
         mDetector.detect(rgba, detectedMarkers, camParams, MARKER_SIZE);
 
+
+        Shooting_list = "";
         // System.out.println("Contours Size:"+mDetector.getContours2().size());
         // System.out.println("DetectMarker Size:"+detectedMarkers.size());
         //Draw Axis for each marker detected
         if (detectedMarkers.size() != 0) {
             for (int i = 0; i < detectedMarkers.size(); i++) {
                 Marker marker = detectedMarkers.get(i);
-                detectedMarkers.get(i).draw3dAxis(rgba, camParams, new Scalar(255,0,0));
-                double[] gun_vector = {-0.179826,0.04242,0.02595};
+                //detectedMarkers.get(i).draw3dAxis(rgba, camParams, new Scalar(0,255,0));
+                double[] gun_vector_r = {-0.179826,0.04242,0.02595};
+                double[] gun_vector_l = {0.04222,0.04247,0.02598};
+
                 double[] marker_vector = new double[3];
                 marker.getTvec().get(0,0,marker_vector);
-                double[] target_vector = {gun_vector[0]+marker_vector[0],gun_vector[1]+marker_vector[1],gun_vector[2]+marker_vector[2]};
-                System.out.println("Target_vector:"+Arrays.toString(target_vector));
 
-                double target_vector_size = Math.sqrt( Math.pow(target_vector[0],2) + Math.pow(target_vector[1],2) + Math.pow(target_vector[2],2));
-                double zeta_target_vector_x = Math.acos(target_vector[0]/target_vector_size);
-                double zeta_target_vector_y = Math.acos(target_vector[1]/target_vector_size);
-                zeta_target_vector_x = Math.toDegrees(zeta_target_vector_x);
-                zeta_target_vector_y = Math.toDegrees(zeta_target_vector_y);
-                System.out.println("Target_Zeta:("+zeta_target_vector_y+","+zeta_target_vector_x+")");
-                try {
-                    bt_socket.getOutputStream().write(("gun_r_pos:"+String.valueOf(zeta_target_vector_x)+","+String.valueOf(zeta_target_vector_y)+"\n").getBytes());
-                } catch (IOException e) {
-                    e.printStackTrace();
+                double[] target_vector_r = {gun_vector_r[0]+marker_vector[0],gun_vector_r[1]+marker_vector[1],gun_vector_r[2]+marker_vector[2]};
+                double[] target_vector_l = {gun_vector_l[0]+marker_vector[0],gun_vector_l[1]+marker_vector[1],gun_vector_l[2]+marker_vector[2]};
+                System.out.println("Target_vector_r:"+Arrays.toString(target_vector_r));
+                System.out.println("Target_vector_l:"+Arrays.toString(target_vector_l));
+
+                double target_vector_r_size = Math.sqrt( Math.pow(target_vector_r[0],2) + Math.pow(target_vector_r[1],2) + Math.pow(target_vector_r[2],2));
+                double target_vector_l_size = Math.sqrt( Math.pow(target_vector_l[0],2) + Math.pow(target_vector_l[1],2) + Math.pow(target_vector_l[2],2));
+
+                if(target_vector_r_size <= target_vector_l_size)
+                {
+                    double zeta_target_vector_x_r = Math.acos(target_vector_r[0] / target_vector_r_size);
+                    double zeta_target_vector_y_r = Math.acos(target_vector_r[1] / target_vector_r_size);
+                    zeta_target_vector_x_r = Math.toDegrees(zeta_target_vector_x_r);
+                    zeta_target_vector_y_r = Math.toDegrees(zeta_target_vector_y_r)+10;
+                    System.out.println("Target_Zeta_r:(" + zeta_target_vector_y_r + "," + zeta_target_vector_x_r + ")");
+                    if(zeta_target_vector_x_r>=70) {
+                        detectedMarkers.get(i).draw3dAxis(rgba, camParams, new Scalar(0,255,0));
+                        Shooting_list += "r";
+                        try {
+                            bt_socket.getOutputStream().write(("gun_r_pos:" + String.valueOf(zeta_target_vector_x_r) + "," + String.valueOf(zeta_target_vector_y_r) + "\n").getBytes());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    else
+                    {
+                        detectedMarkers.get(i).draw3dAxis(rgba, camParams, new Scalar(255,0,0));
+                    }
                 }
+                else
+                {
+                    double zeta_target_vector_x_l = Math.acos(target_vector_l[0] / target_vector_l_size);
+                    double zeta_target_vector_y_l = Math.acos(target_vector_l[1] / target_vector_l_size);
+                    zeta_target_vector_x_l = Math.toDegrees(zeta_target_vector_x_l)-10;
+                    zeta_target_vector_y_l = Math.toDegrees(zeta_target_vector_y_l)+20;
+                    System.out.println("Target_Zeta_l:(" + zeta_target_vector_y_l + "," + zeta_target_vector_x_l + ")");
+                    if(zeta_target_vector_x_l>=70) {
+                        detectedMarkers.get(i).draw3dAxis(rgba, camParams, new Scalar(0,0,255));
+                        Shooting_list += "l";
+                        try {
+                            bt_socket.getOutputStream().write(("gun_l_pos:" + String.valueOf(zeta_target_vector_x_l) + "," + String.valueOf(zeta_target_vector_y_l) + "\n").getBytes());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    else
+                    {
+                        detectedMarkers.get(i).draw3dAxis(rgba, camParams, new Scalar(255,0,0));
+                    }
+                }
+
                 /*
                 if (SHOW_MARKERID) {
                     //Setup
