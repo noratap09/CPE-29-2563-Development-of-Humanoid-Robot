@@ -6,5 +6,7 @@
   ให้โหลดไฟล์ CPE-29-2563-Development-of-Humanoid-Robot/Andriod_App/App_install.apk จากนั้นทำการติดตั้งตามปกติ
 ## วิดีโอ
   - https://www.youtube.com/watch?v=_mokyjUB4M0&list=PLWbQAeKNdgR5oMPkPKm6ftRXmzwV5Xr6B 
+## เอกสาร
+  - https://project.cpe.eng.cmu.ac.th/492/finalreport/600610744-2563_2development_of_humanoid_robot.pdf 
 ## ผู้พัฒนา
   นายนรเทพ เมืองอุดม 600610744
