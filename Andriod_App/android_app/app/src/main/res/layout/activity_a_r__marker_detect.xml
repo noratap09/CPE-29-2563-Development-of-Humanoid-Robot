@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".AR_Marker_detect">
+
+    <org.opencv.android.JavaCameraView
+        android:id="@+id/camera_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" />
+
+    <Button
+        android:id="@+id/btn_to_interaction_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="10dp"
+        android:padding="10dp"
+        android:background="@drawable/interactive_icon"
+        android:alpha="0.60"
+        />
+
+    <Button
+        android:id="@+id/btn_auto_shot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginRight="10dp"
+        android:background="@android:color/holo_red_dark"
+        android:drawableRight="@drawable/ar_shooting_icon"
+        android:alpha="0.60" />
+
+    <ImageView
+        android:id="@+id/img_warning"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="0dp"
+        android:layout_marginLeft="0dp"
+        android:layout_marginTop="0dp"
+        android:alpha=".75"
+        android:visibility="invisible"/>
+
+    <Button
+        android:id="@+id/btn_reload_L_2"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginRight="10dp"
+        android:padding="5dp"
+        android:layout_toStartOf="@+id/btn_auto_shot"
+        android:layout_toLeftOf="@+id/btn_auto_shot"
+        android:alpha="0.60"
+        android:background="@android:color/holo_blue_dark"
+        android:drawableLeft="@drawable/reload_icon"
+        android:text="L"
+        android:textSize="36dp"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btn_reload_R_2"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btn_reload_L_2"
+        android:layout_alignEnd="@+id/btn_reload_L_2"
+        android:layout_alignRight="@+id/btn_reload_L_2"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="0dp"
+        android:layout_marginRight="0dp"
+        android:padding="5dp"
+        android:alpha="0.60"
+        android:background="@android:color/holo_blue_dark"
+        android:drawableLeft="@drawable/reload_icon"
+        android:text="R"
+        android:textSize="36dp"
+        android:textColor="#FFFFFF" />
+</RelativeLayout>
